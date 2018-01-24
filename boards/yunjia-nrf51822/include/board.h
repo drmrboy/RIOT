@@ -9,7 +9,7 @@
 /**
  * @defgroup    boards_yunjia-nrf51822 Yunjia NRF51822
  * @ingroup     boards
- * @brief       Board specific files for the Yunjia NRF51822 board
+ * @brief       Support for the Yunjia NRF51822 board
  * @{
  *
  * @file
@@ -28,11 +28,9 @@ extern "C" {
 #endif
 
 /**
- * @brief   Xtimer configuration
+ * @name   Xtimer configuration
  * @{
  */
-#define XTIMER_DEV                  (0)
-#define XTIMER_CHAN                 (0)
 #define XTIMER_WIDTH                (24)
 #define XTIMER_BACKOFF              (40)
 /** @} */

@@ -42,6 +42,9 @@ RIOT is developed by an open community that anyone is welcome to join:
    [RIOT devel Gmane newsgroup](http://news.gmane.org/gmane.os.riot.devel)
  - Follow us on [Twitter](https://twitter.com/RIOT_OS) for news from the RIOT
    community.
+ - Regarding critical vulnerabilities we would appreciate if you give us a
+   90-days head-start by reporting to security@riot-os.org, before making your
+   information publically available
  - Contact us on IRC for live support and discussions:
    [irc.freenode.org \#riot-os](irc://irc.freenode.org/riot-os)
 
@@ -147,7 +150,7 @@ CPUs share the same code for task switching and interrupt handling). This
 shared code is put in its own directories, following a `xxxxx_common` naming
 scheme. Examples for this is code shared across architectures (e.g.
 `cortexm_common`, `msp430_comon`) or code shared among vendors (e.g.
-`kinetis_common`).
+`stm32_common`).
 
 See @ref cpu for more detailed informtation.
 
@@ -205,7 +208,7 @@ starting point for anyone who is new to RIOT.
 For more information best browse that directory and have a look at the
 `README.md` files that ship with each example.
 
-To create your own application — here or anywhere else — see @ref creating-an-application
+To create your own application - here or anywhere else - see @ref creating-an-application
 
 tests
 -----

@@ -31,11 +31,8 @@ int main(void)
     uint8_t buf[LIMIT];
 
     puts("\nHWRNG peripheral driver test\n");
-    printf("This test will print from 1 to %i random bytes about every"
+    printf("This test will print from 1 to %u random bytes about every "
            "second\n\n", LIMIT);
-
-    puts("Initializing the HWRNG driver.\n");
-    hwrng_init();
 
     while (1) {
         /* zero out buffer */

@@ -62,12 +62,15 @@ void (*real_freeifaddrs)(struct ifaddrs *ifa);
 void (*real_srandom)(unsigned int seed);
 int (*real_accept)(int socket, ...);
 int (*real_bind)(int socket, ...);
+int (*real_connect)(int socket, ...);
 int (*real_printf)(const char *format, ...);
 int (*real_getaddrinfo)(const char *node, ...);
 int (*real_getifaddrs)(struct ifaddrs **ifap);
+int (*real_gettimeofday)(struct timeval *t, ...);
 int (*real_getpid)(void);
 int (*real_chdir)(const char *path);
 int (*real_close)(int);
+int (*real_fcntl)(int, int, ...);
 int (*real_creat)(const char *path, ...);
 int (*real_dup2)(int, int);
 int (*real_execve)(const char *, char *const[], char *const[]);
@@ -89,6 +92,10 @@ int (*real_unlink)(const char *);
 long int (*real_random)(void);
 const char* (*real_gai_strerror)(int errcode);
 FILE* (*real_fopen)(const char *path, const char *mode);
+int (*real_fclose)(FILE *stream);
+int (*real_fseek)(FILE *stream, long offset, int whence);
+int (*real_fputc)(int c, FILE *stream);
+int (*real_fgetc)(FILE *stream);
 mode_t (*real_umask)(mode_t cmask);
 ssize_t (*real_writev)(int fildes, const struct iovec *iov, int iovcnt);
 
@@ -442,14 +449,17 @@ void _native_init_syscalls(void)
     *(void **)(&real_srandom) = dlsym(RTLD_NEXT, "srandom");
     *(void **)(&real_accept) = dlsym(RTLD_NEXT, "accept");
     *(void **)(&real_bind) = dlsym(RTLD_NEXT, "bind");
+    *(void **)(&real_connect) = dlsym(RTLD_NEXT, "connect");
     *(void **)(&real_printf) = dlsym(RTLD_NEXT, "printf");
     *(void **)(&real_gai_strerror) = dlsym(RTLD_NEXT, "gai_strerror");
     *(void **)(&real_getaddrinfo) = dlsym(RTLD_NEXT, "getaddrinfo");
     *(void **)(&real_getifaddrs) = dlsym(RTLD_NEXT, "getifaddrs");
     *(void **)(&real_getpid) = dlsym(RTLD_NEXT, "getpid");
+    *(void **)(&real_gettimeofday) = dlsym(RTLD_NEXT, "gettimeofday");
     *(void **)(&real_pipe) = dlsym(RTLD_NEXT, "pipe");
     *(void **)(&real_chdir) = dlsym(RTLD_NEXT, "chdir");
     *(void **)(&real_close) = dlsym(RTLD_NEXT, "close");
+    *(void **)(&real_fcntl) = dlsym(RTLD_NEXT, "fcntl");
     *(void **)(&real_creat) = dlsym(RTLD_NEXT, "creat");
     *(void **)(&real_fork) = dlsym(RTLD_NEXT, "fork");
     *(void **)(&real_dup2) = dlsym(RTLD_NEXT, "dup2");
@@ -472,6 +482,10 @@ void _native_init_syscalls(void)
     *(void **)(&real_clearerr) = dlsym(RTLD_NEXT, "clearerr");
     *(void **)(&real_umask) = dlsym(RTLD_NEXT, "umask");
     *(void **)(&real_writev) = dlsym(RTLD_NEXT, "writev");
+    *(void **)(&real_fclose) = dlsym(RTLD_NEXT, "fclose");
+    *(void **)(&real_fseek) = dlsym(RTLD_NEXT, "fseek");
+    *(void **)(&real_fputc) = dlsym(RTLD_NEXT, "fputc");
+    *(void **)(&real_fgetc) = dlsym(RTLD_NEXT, "fgetc");
 #ifdef __MACH__
 #else
     *(void **)(&real_clock_gettime) = dlsym(RTLD_NEXT, "clock_gettime");

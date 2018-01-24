@@ -9,7 +9,7 @@
 /**
  * @defgroup    boards_ek-lm4f120xl EK-LM4F120XL
  * @ingroup     boards
- * @brief       Board specific files for the Stellaris Launchpad LM4F120 board
+ * @brief       Support for the Stellaris Launchpad LM4F120 board
  * @{
  *
  * @file
@@ -30,7 +30,7 @@ extern "C" {
 #endif
 
 /**
- * @brief   LED pin definitions and handlers
+ * @name    LED pin definitions and handlers
  * @{
  */
 #define LED0_PIN            GPIO_PIN(5, 7)
@@ -56,7 +56,7 @@ extern "C" {
 /* @} */
 
 /**
- * @brief Initialize board specific hardware, including clock, LEDs and std-IO
+ * @brief   Initialize board specific hardware, including clock, LEDs and std-IO
  */
 extern void board_init(void);
 
@@ -64,5 +64,5 @@ extern void board_init(void);
 }
 #endif
 
-#endif /** BOARD_H */
+#endif /* BOARD_H */
 /** @} */

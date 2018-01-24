@@ -10,9 +10,10 @@
  * @defgroup    drivers_periph_pm Power Management
  * @ingroup     drivers_periph
  * @brief       The kernels power management interface
- * @{
  *
- * This interface *must* be implemented for every platform in RIOT.
+ * @attention This interface *must* be implemented for every platform in RIOT.
+ *
+ * @{
  *
  * @file
  * @brief       Power management interface
@@ -20,14 +21,18 @@
  * @author      Kaspar Schleiser <kaspar@schleiser.de>
  */
 
-#ifndef PM_H
-#define PM_H
+#ifndef PERIPH_PM_H
+#define PERIPH_PM_H
 
 #include "assert.h"
 #include "periph_cpu.h"
 
+#ifdef MODULE_PM_LAYERED
+#include "pm_layered.h"
+#endif
+
 #ifdef __cplusplus
- extern "C" {
+extern "C" {
 #endif
 
 /**
@@ -51,5 +56,5 @@ void pm_set_lowest(void);
 }
 #endif
 
-#endif /* __PM_H */
+#endif /* PERIPH_PM_H */
 /** @} */

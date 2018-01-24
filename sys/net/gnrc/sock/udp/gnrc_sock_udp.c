@@ -69,10 +69,9 @@ static bool _dyn_port_used(uint16_t port)
  */
 static uint16_t _get_dyn_port(sock_udp_t *sock)
 {
-    uint16_t port;
     unsigned count = GNRC_SOCK_DYN_PORTRANGE_NUM;
     do {
-        port = GNRC_SOCK_DYN_PORTRANGE_MIN +
+        uint16_t port = GNRC_SOCK_DYN_PORTRANGE_MIN +
                (_dyn_port_next * GNRC_SOCK_DYN_PORTRANGE_OFF) % GNRC_SOCK_DYN_PORTRANGE_NUM;
         _dyn_port_next++;
         if ((sock == NULL) || (sock->flags & SOCK_FLAGS_REUSE_EP) ||
@@ -242,10 +241,9 @@ ssize_t sock_udp_send(sock_udp_t *sock, const void *data, size_t len,
     else if (sock->remote.family == AF_UNSPEC) {
         return -ENOTCONN;
     }
-    /* compiler evaluates lazily so this isn't a redundundant check and cppcheck
-     * is being weird here anyways */
-    /* cppcheck-suppress nullPointerRedundantCheck */
-    /* cppcheck-suppress nullPointer */
+    /* cppcheck-suppress nullPointerRedundantCheck
+     * (reason: compiler evaluates lazily so this isn't a redundundant check and
+     * cppcheck is being weird here anyways) */
     if ((sock == NULL) || (sock->local.family == AF_UNSPEC)) {
         /* no sock or sock currently unbound */
         memset(&local, 0, sizeof(local));

@@ -2,7 +2,7 @@
  * ARM architecture common support functions
  *
  * Copyright (C) 2008, 2009  Heiko Will <hwill@inf.fu-berlin.de>
- * Copyright (C) 2009  Kaspar Schleiser <kaspar@schleiser.de>
+ * Copyright (C) 2009 Kaspar Schleiser <kaspar@schleiser.de>
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -26,25 +26,6 @@
 void thread_yield_higher(void)
 {
     __asm__("svc 0\n");
-}
-
-/* This function calculates the ISR_usage */
-int thread_arch_isr_stack_usage(void)
-{
-    /* TODO */
-    return -1;
-}
-
-void *thread_arch_isr_stack_pointer(void)
-{
-    /* TODO */
-    return (void *)-1;
-}
-
-void *thread_arch_isr_stack_start(void)
-{
-    /* TODO */
-    return (void *)-1;
 }
 
 /*----------------------------------------------------------------------------

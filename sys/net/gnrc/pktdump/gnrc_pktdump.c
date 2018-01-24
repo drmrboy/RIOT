@@ -27,8 +27,10 @@
 #include "msg.h"
 #include "net/gnrc/pktdump.h"
 #include "net/gnrc.h"
+#include "net/icmpv6.h"
 #include "net/ipv6/addr.h"
 #include "net/ipv6/hdr.h"
+#include "net/tcp.h"
 #include "net/udp.h"
 #include "net/sixlowpan.h"
 #include "od.h"
@@ -71,17 +73,25 @@ static void _dump_snip(gnrc_pktsnip_t *pkt)
 #ifdef MODULE_GNRC_ICMPV6
         case GNRC_NETTYPE_ICMPV6:
             printf("NETTYPE_ICMPV6 (%i)\n", pkt->type);
+            icmpv6_hdr_print(pkt->data);
             break;
 #endif
 #ifdef MODULE_GNRC_TCP
         case GNRC_NETTYPE_TCP:
             printf("NETTYPE_TCP (%i)\n", pkt->type);
+            tcp_hdr_print(pkt->data);
             break;
 #endif
 #ifdef MODULE_GNRC_UDP
         case GNRC_NETTYPE_UDP:
             printf("NETTYPE_UDP (%i)\n", pkt->type);
             udp_hdr_print(pkt->data);
+            break;
+#endif
+#ifdef MODULE_CCN_LITE_UTILS
+        case GNRC_NETTYPE_CCN_CHUNK:
+            printf("GNRC_NETTYPE_CCN_CHUNK (%i)\n", pkt->type);
+            printf("Content is: %.*s\n", (int)pkt->size, (char*)pkt->data);
             break;
 #endif
 #ifdef TEST_SUITES

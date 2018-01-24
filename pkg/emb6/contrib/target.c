@@ -20,6 +20,9 @@
 #include "mutex.h"
 #include "periph/gpio.h"
 #include "periph/hwrng.h"
+#ifdef MODULE_RANDOM
+#include "random.h"
+#endif
 #include "xtimer.h"
 
 #include "target.h"
@@ -45,12 +48,12 @@ int8_t hal_init(void)
 
 uint8_t hal_getrand(void)
 {
-#if RANDOM_NUMOF
+#if defined(MODULE_PERIPH_HWRNG)
     uint8_t res;
     hwnrg_read((char *)&res, sizeof(res));
     return res;
 #elif defined(MODULE_RANDOM)
-    return (uint8_t)(genrand_uint32() % UINT8_MAX);
+    return (uint8_t)(random_uint32() % UINT8_MAX);
 #else
     return 4;   /* keeping the meme alive ;-) */
 #endif
@@ -92,7 +95,7 @@ void hal_ledOff(uint16_t ui_led)
 
 uint8_t hal_extIntInit(en_targetExtInt_t e_extInt, pfn_intCallb_t pfn_intCallback)
 {
-    /* RIOT does this in netdev2 initialization so nothing to do here. */
+    /* RIOT does this in netdev initialization so nothing to do here. */
     return 0;
 }
 

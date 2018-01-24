@@ -9,11 +9,11 @@
 /**
  * @defgroup    boards_airfy-beacon Airfy Beacon
  * @ingroup     boards
- * @brief       Board specific files for the Arify Beacon board
+ * @brief       Support for the Airfy Beacon board
  * @{
  *
  * @file
- * @brief       Board specific definitions for the Arify Beacon board
+ * @brief       Board specific definitions for the Airfy Beacon board
  *
  * @author      Christian Mehlis <mehlis@inf.fu-berlin.de>
  */
@@ -28,17 +28,15 @@
 #endif
 
 /**
- * @brief   Xtimer configuration
+ * @name    Xtimer configuration
  * @{
  */
-#define XTIMER_DEV                  (0)
-#define XTIMER_CHAN                 (0)
 #define XTIMER_WIDTH                (24)
 #define XTIMER_BACKOFF              (40)
 /** @} */
 
 /**
- * @brief Initialize board specific hardware, including clock, LEDs and std-IO
+ * @brief   Initialize board specific hardware, including clock, LEDs and std-IO
  */
 void board_init(void);
 

@@ -20,8 +20,8 @@
  * @author      Cenk Gündoğan <cnkgndgn@gmail.com>
  */
 
-#ifndef GNRC_RPL_DODAG_H
-#define GNRC_RPL_DODAG_H
+#ifndef NET_GNRC_RPL_DODAG_H
+#define NET_GNRC_RPL_DODAG_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -103,13 +103,11 @@ gnrc_rpl_instance_t *gnrc_rpl_instance_get(uint8_t instance_id);
  * @param[in]   instance        Pointer to the instance to add the DODAG to
  * @param[in]   dodag_id        The DODAG-ID of the new DODAG
  * @param[in]   iface           Interface PID where the DODAG operates
- * @param[in]   netif_addr      netif address for this DODAG
  *
  * @return  true, if DODAG could be created.
  * @return  false, if DODAG could not be created or exists already.
  */
-bool gnrc_rpl_dodag_init(gnrc_rpl_instance_t *instance, ipv6_addr_t *dodag_id, kernel_pid_t iface,
-                         gnrc_ipv6_netif_addr_t *netif_addr);
+bool gnrc_rpl_dodag_init(gnrc_rpl_instance_t *instance, ipv6_addr_t *dodag_id, kernel_pid_t iface);
 
 /**
  * @brief   Remove all parents from the @p dodag.
@@ -173,7 +171,7 @@ void gnrc_rpl_router_operation(gnrc_rpl_dodag_t *dodag);
 }
 #endif
 
-#endif /* GNRC_RPL_DODAG_H */
+#endif /* NET_GNRC_RPL_DODAG_H */
 /**
  * @}
  */

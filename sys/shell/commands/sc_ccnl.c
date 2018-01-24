@@ -26,15 +26,9 @@
 
 #define BUF_SIZE (64)
 
-/**
- * Maximum number of Interest retransmissions
- */
-#define CCNL_INTEREST_RETRIES   (3)
-
-#define MAX_ADDR_LEN            (8U)
+#define MAX_ADDR_LEN            (GNRC_NETIF_L2ADDR_MAXLEN)
 
 static unsigned char _int_buf[BUF_SIZE];
-static unsigned char _cont_buf[BUF_SIZE];
 
 static const char *_default_content = "Start the RIOT!";
 static unsigned char _out[CCNL_MAX_PACKET_SIZE];
@@ -61,7 +55,7 @@ int _ccnl_open(int argc, char **argv)
 
     /* check if given number is a valid netif PID */
     int pid = atoi(argv[1]);
-    if (!gnrc_netif_exist(pid)) {
+    if (gnrc_netif_get_by_pid(pid) == NULL) {
         printf("%i is not a valid interface!\n", pid);
         return -1;
     }
@@ -89,36 +83,38 @@ static void _content_usage(char *argv)
 
 int _ccnl_content(int argc, char **argv)
 {
-    char *body = (char*) _default_content;
-    int arg_len = strlen(_default_content) + 1;
-    int offs = CCNL_MAX_PACKET_SIZE;
     if (argc < 2) {
         _content_usage(argv[0]);
         return -1;
     }
 
+    int arg_len;
+    char *body = (char*) _default_content;
+    char buf[BUF_SIZE+1]; /* add one extra space to fit trailing '\0' */
+
     if (argc > 2) {
-        char buf[BUF_SIZE];
-        memset(buf, ' ', BUF_SIZE);
-        char *buf_ptr = buf;
-        for (int i = 2; (i < argc) && (buf_ptr < (buf + BUF_SIZE)); i++) {
+        unsigned pos = 0;
+        for (int i = 2; (i < argc) && (pos < BUF_SIZE); ++i) {
             arg_len = strlen(argv[i]);
-            if ((buf_ptr + arg_len) > (buf + BUF_SIZE)) {
-                arg_len = (buf + BUF_SIZE) - buf_ptr;
+            if ((pos + arg_len) > BUF_SIZE) {
+                arg_len = BUF_SIZE - pos;
             }
-            strncpy(buf_ptr, argv[i], arg_len);
-            buf_ptr += arg_len + 1;
+            strncpy(&buf[pos], argv[i], arg_len);
+            pos += arg_len;
+            /* increment pos _after_ adding ' ' */
+            buf[pos++] = ' ';
         }
-        *buf_ptr = '\0';
+        /* decrement pos _before_ to overwrite last ' ' with '\0' */
+        buf[--pos] = '\0';
         body = buf;
-        arg_len = strlen(body);
     }
+    arg_len = strlen(body);
 
-    int suite = CCNL_SUITE_NDNTLV;
-
-    struct ccnl_prefix_s *prefix = ccnl_URItoPrefix(argv[1], suite, NULL, NULL);
-
+    struct ccnl_prefix_s *prefix = ccnl_URItoPrefix(argv[1], CCNL_SUITE_NDNTLV, NULL, NULL);
+    int offs = CCNL_MAX_PACKET_SIZE;
     arg_len = ccnl_ndntlv_prependContent(prefix, (unsigned char*) body, arg_len, NULL, NULL, &offs, _out);
+
+    ccnl_prefix_free(prefix);
 
     unsigned char *olddata;
     unsigned char *data = olddata = _out + offs;
@@ -133,7 +129,7 @@ int _ccnl_content(int argc, char **argv)
 
     struct ccnl_content_s *c = 0;
     struct ccnl_pkt_s *pk = ccnl_ndntlv_bytes2pkt(typ, olddata, &data, &arg_len);
-    c = ccnl_content_new(&ccnl_relay, &pk);
+    c = ccnl_content_new(&pk);
     ccnl_content_add2cache(&ccnl_relay, c);
     c->flags |= CCNL_CONTENT_FLAGS_STATIC;
 
@@ -145,7 +141,7 @@ static struct ccnl_face_s *_intern_face_get(char *addr_str)
     /* initialize address with 0xFF for broadcast */
     uint8_t relay_addr[MAX_ADDR_LEN];
     memset(relay_addr, UINT8_MAX, MAX_ADDR_LEN);
-    size_t addr_len = gnrc_netif_addr_from_str(relay_addr, sizeof(relay_addr), addr_str);
+    size_t addr_len = gnrc_netif_addr_from_str(addr_str, relay_addr);
 
     if (addr_len == 0) {
         printf("Error: %s is not a valid link layer address\n", addr_str);
@@ -209,27 +205,12 @@ int _ccnl_interest(int argc, char **argv)
     }
 
     memset(_int_buf, '\0', BUF_SIZE);
-    memset(_cont_buf, '\0', BUF_SIZE);
-    for (int cnt = 0; cnt < CCNL_INTEREST_RETRIES; cnt++) {
-        gnrc_netreg_entry_t _ne =
-            GNRC_NETREG_ENTRY_INIT_PID(GNRC_NETREG_DEMUX_CTX_ALL,
-                                       sched_active_pid);
-        /* register for content chunks */
-        gnrc_netreg_register(GNRC_NETTYPE_CCN_CHUNK, &_ne);
 
-        struct ccnl_prefix_s *prefix = ccnl_URItoPrefix(argv[1], CCNL_SUITE_NDNTLV, NULL, 0);
-        ccnl_send_interest(prefix, _int_buf, BUF_SIZE);
-        if (ccnl_wait_for_chunk(_cont_buf, BUF_SIZE, 0) > 0) {
-            gnrc_netreg_unregister(GNRC_NETTYPE_CCN_CHUNK, &_ne);
-            printf("Content received: %s\n", _cont_buf);
-            return 0;
-        }
-        ccnl_free(prefix);
-        gnrc_netreg_unregister(GNRC_NETTYPE_CCN_CHUNK, &_ne);
-    }
-    printf("Timeout! No content received in response to the Interest for %s.\n", argv[1]);
+    struct ccnl_prefix_s *prefix = ccnl_URItoPrefix(argv[1], CCNL_SUITE_NDNTLV, NULL, 0);
+    int res = ccnl_send_interest(prefix, _int_buf, BUF_SIZE);
+    ccnl_prefix_free(prefix);
 
-    return -1;
+    return res;
 }
 
 static void _ccnl_fib_usage(char *argv)
@@ -260,7 +241,7 @@ int _ccnl_fib(int argc, char **argv)
                 return -1;
             }
             int res = ccnl_fib_rem_entry(&ccnl_relay, prefix, NULL);
-            free_prefix(prefix);
+            ccnl_prefix_free(prefix);
             return res;
         }
         else {

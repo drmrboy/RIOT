@@ -51,6 +51,7 @@ function run {
 
 if [[ $BUILDTEST_MCU_GROUP ]]
 then
+    export BASE_BRANCH="${CI_BASE_BRANCH}"
 
     if [ "$BUILDTEST_MCU_GROUP" == "static-tests" ]
     then
@@ -81,19 +82,17 @@ then
 
         run ./dist/tools/ci/print_toolchain_versions.sh
 
+        run ./dist/tools/commit-msg/check.sh ${CI_BASE_BRANCH}
         run ./dist/tools/whitespacecheck/check.sh ${CI_BASE_BRANCH}
-        run ./dist/tools/licenses/check.sh ${CI_BASE_BRANCH} --diff-filter=MR --error-exitcode=0
-        run ./dist/tools/licenses/check.sh ${CI_BASE_BRANCH} --diff-filter=AC
-        run ./dist/tools/doccheck/check.sh ${CI_BASE_BRANCH}
-        run ./dist/tools/externc/check.sh ${CI_BASE_BRANCH}
-
-        # TODO:
-        #   Remove all but `${CI_BASE_BRANCH}` parameters to cppcheck (and remove second
-        #   invocation) once all warnings of cppcheck have been taken care of
-        #   in ${CI_BASE_BRANCH}.
-        run ./dist/tools/cppcheck/check.sh ${CI_BASE_BRANCH} --diff-filter=MR --error-exitcode=0
-        run ./dist/tools/cppcheck/check.sh ${CI_BASE_BRANCH} --diff-filter=AC
+        DIFFFILTER="MR" ERROR_EXIT_CODE=0 run ./dist/tools/licenses/check.sh
+        DIFFFILTER="AC" run ./dist/tools/licenses/check.sh
+        run ./dist/tools/doccheck/check.sh
+        run ./dist/tools/externc/check.sh
+        run ./dist/tools/cppcheck/check.sh
         run ./dist/tools/pr_check/pr_check.sh ${CI_BASE_BRANCH}
+        run ./dist/tools/coccinelle/check.sh
+        run ./dist/tools/flake8/check.sh
+        QUIET=1 run ./dist/tools/headerguards/check.sh
         exit $RESULT
     fi
 
@@ -106,13 +105,9 @@ then
     then
         make -C ./tests/unittests all-debug test BOARD=native TERMPROG='gdb -batch -ex r -ex bt $(ELF)' || exit
         set_result $?
-        # TODO:
-        #   Reenable once https://github.com/RIOT-OS/RIOT/issues/2300 is
-        #   resolved:
-        #   - make -C ./tests/unittests all test BOARD=qemu-i386 || exit
     fi
 
-    BASE_BRANCH="${CI_BASE_BRANCH}"
+
     ./dist/tools/compile_test/compile_test.py $BASE_BRANCH
     set_result $?
 fi

@@ -1,4 +1,3 @@
-USEMODULE += msba2-common
-USEMODULE += avsextrem-drivers
+USEMODULE += boards_common_msba2
 
-include $(RIOTBOARD)/msba2-common/Makefile.include
+include $(RIOTBOARD)/common/msba2/Makefile.include

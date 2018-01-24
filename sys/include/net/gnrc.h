@@ -18,10 +18,10 @@
  * =====
  *
  * This module is currently the default network stack for RIOT and includes
- * many components ranging from a @ref net_gnrc_nomac "simple MAC protocol"
- * through a fully-featured @ref net_gnrc_ipv6 implementation with @ref
- * net_gnrc_sixlowpan "6LowPAN" extensions to an @ref net_gnrc_udp "UDP"
- * implementation and @ref net_gnrc_rpl.
+ * many components ranging from a @ref net_gnrc_netif through a fully-featured
+ * @ref net_gnrc_ipv6 implementation with @ref net_gnrc_sixlowpan "6LowPAN"
+ * extensions to an @ref net_gnrc_udp "UDP" implementation and
+ * @ref net_gnrc_rpl.
  *
  * A list of all features contained in the @ref net_gnrc is available in the
  * `Modules` section above.
@@ -30,8 +30,8 @@
  * =====================
  *
  * From the application layer the @ref net_gnrc can be accessed through the
- * @ref net_conn, while the interface to the @ref drivers_netdev_netdev2 is
- * defined by the @ref net_gnrc_netdev2.
+ * @ref net_sock, while the interface to the @ref drivers_netdev_api is
+ * defined by the @ref net_gnrc_netif.
  *
  * Architecture
  * ============
@@ -203,6 +203,11 @@
  *       please refer to @ref gnrc_udp_hdr_build(), @ref gnrc_ipv6_hdr_build()
  *       etc. for more information.
  *
+ * @note GNRC is implemented according to the respective standards. So please
+ *       note, that sending to a IPv6 link-local address always requires you
+ *       by definition to also provide the interface you want to send to,
+ *       otherwise address resolution might fail.
+ *
  * How To Use
  * ==========
  * @ref net_gnrc is highly modular and can be adjusted to include only the
@@ -241,11 +246,10 @@
  *   USEMODULE += gnrc_ipv6_router
  *   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *   respectively. Those modules provide the bare minimum of IPv6
- *   functionalities (no @ref net_gnrc_icmpv6, no @ref net_gnrc_ndp). Because
- *   of that, the @ref net_gnrc_ipv6_nc needs to be configured manually. If an
- *   IEEE 802.15.4 device is present @ref net_gnrc_sixlowpan will be included
- *   automatically, but no fragmentation or header compression support will be
- *   provided.
+ *   functionalities (no @ref net_gnrc_icmpv6). Because of that, the
+ *   @ref net_gnrc_ipv6_nib needs to be configured manually. If an IEEE 802.15.4
+ *   device is present @ref net_gnrc_sixlowpan will be included automatically,
+ *   but no fragmentation or header compression support will be provided.
  *
  * - For @ref net_gnrc_icmpv6_echo "ICMPv6 echo request/reply (ping)"
  *   functionality:
@@ -258,9 +262,9 @@
  *   USEMODULE += gnrc_udp
  *   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *
- * - To use @ref net_conn_udp with GNRC include
+ * - To use @ref net_sock_udp with GNRC include
  *   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ {.mk}
- *   USEMODULE += gnrc_conn_udp
+ *   USEMODULE += gnrc_sock_udp
  *   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *
  * - To include the @ref net_gnrc_rpl module
@@ -280,11 +284,10 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef GNRC_NETBASE_H
-#define GNRC_NETBASE_H
+#ifndef NET_GNRC_H
+#define NET_GNRC_H
 
 #include "net/netopt.h"
-#include "net/gnrc/netdev.h"
 #include "net/gnrc/netapi.h"
 #include "net/gnrc/netreg.h"
 #include "net/gnrc/nettype.h"
@@ -303,5 +306,5 @@ extern "C" {
 }
 #endif
 
-#endif /* GNRC_NETBASE_H */
+#endif /* NET_GNRC_H */
 /** @} */

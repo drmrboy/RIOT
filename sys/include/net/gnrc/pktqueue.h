@@ -18,8 +18,8 @@
  * @author      Martine Lenders <mlenders@inf.fu-berlin.de>
  */
 
-#ifndef GNRC_PKTQUEUE_H
-#define GNRC_PKTQUEUE_H
+#ifndef NET_GNRC_PKTQUEUE_H
+#define NET_GNRC_PKTQUEUE_H
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -42,7 +42,7 @@ typedef struct gnrc_pktqueue {
 /**
  * @brief       add @p node into @p queue.
  *
- * @param[in,out]   queue   the queue, may not be NULL
+ * @param[in,out]   queue   the queue. Must not be NULL
  * @param[in]       node    the node to add.
  */
 static inline void gnrc_pktqueue_add(gnrc_pktqueue_t **queue, gnrc_pktqueue_t *node)
@@ -53,7 +53,7 @@ static inline void gnrc_pktqueue_add(gnrc_pktqueue_t **queue, gnrc_pktqueue_t *n
 /**
  * @brief       remove @p node from @p queue
  *
- * @param[in]   queue   the queue, may not be NULL
+ * @param[in]   queue   the queue. Must not be NULL
  * @param[in]   node    the node to remove
  *
  * @return  @p node.
@@ -71,7 +71,7 @@ static inline gnrc_pktqueue_t *gnrc_pktqueue_remove(gnrc_pktqueue_t **queue, gnr
 /**
  * @brief remove the packet queue's head
  *
- * @param[in]  queue    the queue, may not be NULL
+ * @param[in]  queue    the queue. Must not be NULL
  *
  * @return              the old head
  */
@@ -84,7 +84,7 @@ static inline gnrc_pktqueue_t *gnrc_pktqueue_remove_head(gnrc_pktqueue_t **queue
 }
 #endif
 
-#endif /* GNRC_PKTQUEUE_H */
+#endif /* NET_GNRC_PKTQUEUE_H */
 /**
  * @}
  */

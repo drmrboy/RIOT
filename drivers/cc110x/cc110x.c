@@ -20,7 +20,7 @@
  * @}
  */
 
-#include "uuid.h"
+#include "luid.h"
 #include "board.h"
 #include "periph/gpio.h"
 #include "periph/spi.h"
@@ -55,16 +55,10 @@ int cc110x_setup(cc110x_t *dev, const cc110x_params_t *params)
     dev->params = *params;
 
     /* Configure chip-select */
-    gpio_init(dev->params.cs, GPIO_OUT);
-    gpio_set(dev->params.cs);
+    spi_init_cs(dev->params.spi, dev->params.cs);
 
     /* Configure GDO1 */
     gpio_init(dev->params.gdo1, GPIO_IN);
-
-    /* Configure SPI */
-    spi_acquire(dev->params.spi);
-    spi_init_master(dev->params.spi, SPI_CONF_FIRST_RISING, SPI_SPEED_5MHZ);
-    spi_release(dev->params.spi);
 
 #ifndef CC110X_DONT_RESET
     /* reset device*/
@@ -88,7 +82,7 @@ int cc110x_setup(cc110x_t *dev, const cc110x_params_t *params)
 
     /* set default node id */
     uint8_t addr;
-    uuid_get(&addr, 1);
+    luid_get(&addr, 1);
     cc110x_set_address(dev, addr);
 
     LOG_INFO("cc110x: initialized with address=%u and channel=%i\n",
@@ -102,7 +96,7 @@ uint8_t cc110x_set_address(cc110x_t *dev, uint8_t address)
 {
     DEBUG("%s:%s:%u setting address %u\n", RIOT_FILE_RELATIVE, __func__,
             __LINE__, (unsigned)address);
-    if (!(address < MIN_UID) || (address > MAX_UID)) {
+    if (!(address < MIN_UID)) {
         if (dev->radio_state != RADIO_UNKNOWN) {
             cc110x_write_register(dev, CC110X_ADDR, address);
             dev->radio_address = address;

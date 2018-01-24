@@ -22,7 +22,7 @@
 #else
 #include <dlfcn.h>
 #endif
-
+#include "byteorder.h"
 #include <assert.h>
 #include <getopt.h>
 #include <stdbool.h>
@@ -43,6 +43,9 @@
 #include "native_internal.h"
 #include "tty_uart.h"
 
+#define ENABLE_DEBUG (0)
+#include "debug.h"
+
 typedef enum {
     _STDIOTYPE_STDIO = 0,   /**< leave intact */
     _STDIOTYPE_NULL,        /**< redirect to "/dev/null" */
@@ -59,13 +62,37 @@ unsigned _native_rng_seed = 0;
 int _native_rng_mode = 0;
 const char *_native_unix_socket_path = NULL;
 
-#ifdef MODULE_NETDEV2_TAP
-#include "netdev2_tap_params.h"
+#ifdef MODULE_NETDEV_TAP
+#include "netdev_tap_params.h"
 
-netdev2_tap_params_t netdev2_tap_params[NETDEV2_TAP_MAX];
+netdev_tap_params_t netdev_tap_params[NETDEV_TAP_MAX];
+#endif
+#ifdef MODULE_MTD_NATIVE
+#include "board.h"
+#include "mtd_native.h"
+#endif
+#ifdef MODULE_CAN_LINUX
+#include "candev_linux.h"
 #endif
 
-static const char short_opts[] = ":hi:s:deEoc:";
+#ifdef MODULE_SOCKET_ZEP
+#include "socket_zep_params.h"
+
+socket_zep_params_t socket_zep_params[SOCKET_ZEP_MAX];
+#endif
+
+static const char short_opts[] = ":hi:s:deEoc:"
+#ifdef MODULE_MTD_NATIVE
+    "m:"
+#endif
+#ifdef MODULE_CAN_LINUX
+    "n:"
+#endif
+#ifdef MODULE_SOCKET_ZEP
+    "z:"
+#endif
+    "";
+
 static const struct option long_opts[] = {
     { "help", no_argument, NULL, 'h' },
     { "id", required_argument, NULL, 'i' },
@@ -75,6 +102,15 @@ static const struct option long_opts[] = {
     { "stderr-noredirect", no_argument, NULL, 'E' },
     { "stdout-pipe", no_argument, NULL, 'o' },
     { "uart-tty", required_argument, NULL, 'c' },
+#ifdef MODULE_MTD_NATIVE
+    { "mtd", required_argument, NULL, 'm' },
+#endif
+#ifdef MODULE_CAN_LINUX
+    { "can", required_argument, NULL, 'n' },
+#endif
+#ifdef MODULE_SOCKET_ZEP
+    { "zep", required_argument, NULL, 'z' },
+#endif
     { NULL, 0, NULL, '\0' },
 };
 
@@ -199,13 +235,20 @@ void usage_exit(int status)
 {
     real_printf("usage: %s", _progname);
 
-#if defined(MODULE_NETDEV2_TAP)
-    for (int i = 0; i < NETDEV2_TAP_MAX; i++) {
+#if defined(MODULE_NETDEV_TAP)
+    for (int i = 0; i < NETDEV_TAP_MAX; i++) {
         real_printf(" <tap interface %d>", i + 1);
     }
 #endif
-
     real_printf(" [-i <id>] [-d] [-e|-E] [-o] [-c <tty>]\n");
+#if defined(MODULE_SOCKET_ZEP) && (SOCKET_ZEP_MAX > 0)
+    real_printf(" -z [[<laddr>:<lport>,]<raddr>:<rport>]\n");
+    for (int i = 0; i < SOCKET_ZEP_MAX - 1; i++) {
+        /* for further interfaces the local address must be different so we omit
+         * the braces (marking them as optional) to be 100% clear on that */
+        real_printf(" -z <laddr>:<lport>,<raddr>:<rport>\n");
+    }
+#endif
 
     real_printf(" help: %s -h\n\n", _progname);
 
@@ -229,11 +272,103 @@ void usage_exit(int status)
 "        to socket\n"
 "    -c <tty>, --uart-tty=<tty>\n"
 "        specify TTY device for UART. This argument can be used multiple\n"
-"        times (up to UART_NUMOF)\n");
+"        times (up to UART_NUMOF)\n"
+#if defined(MODULE_SOCKET_ZEP) && (SOCKET_ZEP_MAX > 0)
+"    -z [<laddr>:<lport>,]<raddr>:<rport> --zep=[<laddr>:<lport>,]<raddr>:<rport>\n"
+"        provide a ZEP interface with local address and port (<laddr>, <lport>)\n"
+"        and remote address and port (default local: [::]:17754).\n"
+"        Required to be provided SOCKET_ZEP_MAX times\n"
+#endif
+    );
+#ifdef MODULE_MTD_NATIVE
+    real_printf(
+"    -m <mtd>, --mtd=<mtd>\n"
+"       specify the file name of mtd emulated device\n");
+#endif
+#if defined(MODULE_CAN_LINUX)
+    real_printf(
+"    -n <ifnum>:<ifname>, --can <ifnum>:<ifname>\n"
+"        specify CAN interface <ifname> to use for CAN device #<ifnum>\n"
+"        max number of CAN device: %d\n", CAN_DLL_NUMOF);
+#endif
     real_exit(status);
 }
 
-__attribute__((constructor)) static void startup(int argc, char **argv)
+#ifdef MODULE_SOCKET_ZEP
+static void _parse_ep_str(char *ep_str, char **addr, char **port)
+{
+    /* read endpoint string in reverse, the last chars are the port and decimal
+     * numbers, then a colon, then the address (potentially containing colons,
+     * that's why we read in reverse) */
+    for (int i = strlen(ep_str) - 1; (i >= 0) && (*port == NULL); i--) {
+        if (((ep_str[i] < '0') || (ep_str[i] > '9')) && (ep_str[i] != ':')) {
+            usage_exit(EXIT_FAILURE);
+        }
+        if ((ep_str[i] == ':') && (i >= (int)sizeof("[]"))) {
+            /* found port delimiter, but we need to make sure it isn't delivered
+             * like :<port>. Two characters for either hostname or IP address
+             * seems reasonable especially considering, that we need to
+             * remove the [] around IPv6 addresses */
+            *port = &ep_str[i + 1];
+            if ((ep_str[0] == '[') && (ep_str[i - 1] == ']')) {
+                /* addr is in the format [<addr>], strip [] */
+                *addr = &ep_str[1];
+                ep_str[i - 1] = '\0';
+            }
+            else if ((ep_str[0] == '[') || (ep_str[i - 1] == ']')) {
+                /* unbalanced brackets */
+                usage_exit(EXIT_FAILURE);
+            }
+            else {
+                *addr = ep_str;
+            }
+            ep_str[i] = '\0';
+        }
+    }
+    if (*port == NULL) {
+        usage_exit(EXIT_FAILURE);
+    }
+}
+
+static void _zep_params_setup(char *zep_str, int zep)
+{
+    char *save_ptr, *first_ep, *second_ep;
+
+    if ((first_ep = strtok_r(zep_str, ",", &save_ptr)) == NULL) {
+        usage_exit(EXIT_FAILURE);
+    }
+    second_ep = strtok_r(NULL, ",", &save_ptr);
+    if (second_ep == NULL) {
+        socket_zep_params[zep].local_addr = SOCKET_ZEP_LOCAL_ADDR_DEFAULT;
+        socket_zep_params[zep].local_port = SOCKET_ZEP_PORT_DEFAULT;
+        _parse_ep_str(first_ep, &socket_zep_params[zep].remote_addr,
+                      &socket_zep_params[zep].remote_port);
+    }
+    else {
+        _parse_ep_str(first_ep, &socket_zep_params[zep].local_addr,
+                      &socket_zep_params[zep].local_port);
+        _parse_ep_str(second_ep, &socket_zep_params[zep].remote_addr,
+                      &socket_zep_params[zep].remote_port);
+    }
+}
+#endif
+
+/** @brief Initialization function pointer type */
+typedef void (*init_func_t)(int argc, char **argv, char **envp);
+#ifdef __APPLE__
+/* Taken from the sources of Apple's dyld launcher
+ * https://github.com/opensource-apple/dyld/blob/3f928f32597888c5eac6003b9199d972d49857b5/src/dyldInitialization.cpp#L85-L104
+ */
+/* Find the extents of the __DATA __mod_init_func section */
+extern init_func_t __init_array_start __asm("section$start$__DATA$__mod_init_func");
+extern init_func_t __init_array_end   __asm("section$end$__DATA$__mod_init_func");
+#else
+/* Linker script provides pointers to the beginning and end of the init array */
+extern init_func_t __init_array_start;
+extern init_func_t __init_array_end;
+#endif
+
+__attribute__((constructor)) static void startup(int argc, char **argv, char **envp)
 {
     _native_init_syscalls();
 
@@ -245,6 +380,9 @@ __attribute__((constructor)) static void startup(int argc, char **argv)
     _native_id = _native_pid;
 
     int c, opt_idx = 0, uart = 0;
+#ifdef MODULE_SOCKET_ZEP
+    unsigned zeps = 0;
+#endif
     bool dmn = false, force_stderr = false;
     _stdiotype_t stderrtype = _STDIOTYPE_STDIO;
     _stdiotype_t stdouttype = _STDIOTYPE_STDIO;
@@ -253,8 +391,10 @@ __attribute__((constructor)) static void startup(int argc, char **argv)
     while ((c = getopt_long(argc, argv, short_opts, long_opts, &opt_idx)) >= 0) {
         switch (c) {
             case 0:
+                /* fall through to 'h' */
             case 'h':
                 usage_exit(EXIT_SUCCESS);
+                break;
             case 'i':
                 _native_id = atol(optarg);
                 break;
@@ -285,16 +425,52 @@ __attribute__((constructor)) static void startup(int argc, char **argv)
             case 'c':
                 tty_uart_setup(uart++, optarg);
                 break;
+#ifdef MODULE_MTD_NATIVE
+            case 'm':
+                ((mtd_native_dev_t *)mtd0)->fname = strndup(optarg, PATH_MAX - 1);
+                break;
+#endif
+#if defined(MODULE_CAN_LINUX)
+            case 'n':{
+                int i;
+                i = atol(optarg);
+                if (i >= (int)CAN_DLL_NUMOF) {
+                    usage_exit(EXIT_FAILURE);
+                }
+                while ((*optarg != ':') && (*optarg != '\0')) {
+                    optarg++;
+                }
+                if (*optarg == '\0') {
+                    usage_exit(EXIT_FAILURE);
+                }
+                optarg++;
+                strncpy(candev_linux_conf[i].interface_name, optarg,
+                        CAN_MAX_SIZE_INTERFACE_NAME);
+                }
+                break;
+#endif
+#ifdef MODULE_SOCKET_ZEP
+            case 'z':
+                _zep_params_setup(optarg, zeps++);
+                break;
+#endif
             default:
                 usage_exit(EXIT_FAILURE);
+                break;
         }
     }
-#ifdef MODULE_NETDEV2_TAP
-    for (int i = 0; i < NETDEV2_TAP_MAX; i++) {
+#ifdef MODULE_NETDEV_TAP
+    for (int i = 0; i < NETDEV_TAP_MAX; i++) {
         if (argv[optind + i] == NULL) {
             /* no tap parameter left */
             usage_exit(EXIT_FAILURE);
         }
+    }
+#endif
+#ifdef MODULE_SOCKET_ZEP
+    if (zeps != SOCKET_ZEP_MAX) {
+        /* not enough ZEPs given */
+        usage_exit(EXIT_FAILURE);
     }
 #endif
 
@@ -319,11 +495,44 @@ __attribute__((constructor)) static void startup(int argc, char **argv)
     _native_null_out_file = _native_log_output(stdouttype, STDOUT_FILENO);
     _native_input(stdintype);
 
+    /* startup is a constructor which is being called from the init_array during
+     * C runtime initialization, this is normally used for code which must run
+     * before launching main(), such as C++ global object constructors etc.
+     * However, this function (startup) misbehaves a bit when we call
+     * kernel_init below, which does not return until there is an abort or a
+     * power off command.
+     * We need all C++ global constructors and other initializers to run before
+     * we enter the normal application code, which may depend on global objects
+     * having been initalized properly. Therefore, we iterate through the
+     * remainder of the init_array and call any constructors which have been
+     * placed after startup in the initialization order.
+     */
+    init_func_t *init_array_ptr = &__init_array_start;
+    DEBUG("__init_array_start: %p\n", (void *)init_array_ptr);
+    while (init_array_ptr != &__init_array_end) {
+        /* Skip everything which has already been run */
+        if ((*init_array_ptr) == startup) {
+            /* Found ourselves, move on to calling the rest of the constructors */
+            DEBUG("%18p - myself\n", (void *)init_array_ptr);
+            ++init_array_ptr;
+            break;
+        }
+        DEBUG("%18p - skip\n", (void *)init_array_ptr);
+        ++init_array_ptr;
+    }
+    while (init_array_ptr != &__init_array_end) {
+        /* call all remaining constructors */
+        DEBUG("%18p - call\n", (void *)init_array_ptr);
+        (*init_array_ptr)(argc, argv, envp);
+        ++init_array_ptr;
+    }
+    DEBUG("done, __init_array_end: %p\n", (void *)init_array_ptr);
+
     native_cpu_init();
     native_interrupt_init();
-#ifdef MODULE_NETDEV2_TAP
-    for (int i = 0; i < NETDEV2_TAP_MAX; i++) {
-        netdev2_tap_params[i].tap_name = &argv[optind + i];
+#ifdef MODULE_NETDEV_TAP
+    for (int i = 0; i < NETDEV_TAP_MAX; i++) {
+        netdev_tap_params[i].tap_name = &argv[optind + i];
     }
 #endif
 

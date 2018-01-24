@@ -26,8 +26,8 @@
  */
 
 
-#ifndef GNRC_IPV6_H
-#define GNRC_IPV6_H
+#ifndef NET_GNRC_IPV6_H
+#define NET_GNRC_IPV6_H
 
 #include "kernel_types.h"
 #include "net/gnrc.h"
@@ -36,8 +36,7 @@
 #include "net/ipv6.h"
 #include "net/gnrc/ipv6/ext.h"
 #include "net/gnrc/ipv6/hdr.h"
-#include "net/gnrc/ipv6/nc.h"
-#include "net/gnrc/ipv6/netif.h"
+#include "net/gnrc/ipv6/nib.h"
 
 #ifdef MODULE_FIB
 #include "net/fib.h"
@@ -67,6 +66,25 @@ extern "C" {
 #ifndef GNRC_IPV6_MSG_QUEUE_SIZE
 #define GNRC_IPV6_MSG_QUEUE_SIZE    (8U)
 #endif
+
+#ifdef DOXYGEN
+/**
+ * @brief   Add a static IPv6 link local address to any network interface
+ *
+ * This macro allows to specify a certain link local IPv6 address to be assigned
+ * to a network interface on startup, which might be handy for testing.
+ * Note: a) a interface will keep its auto-generated link local address, too
+ *       b) the address is incremented by 1, if multiple interfaces are present
+ *
+ * To use the macro just add it to `CFLAGS` in the application's Makefile, like:
+ *
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ {.mk}
+ * IPV6_STATIC_LLADDR ?= '"fe80::cafe:cafe:cafe:1"'
+ * CFLAGS += -DGNRC_IPV6_STATIC_LLADDR=$(STATIC_IPV6_LLADDR)
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ */
+#define GNRC_IPV6_STATIC_LLADDR
+#endif /* DOXYGEN */
 
 /**
  * @brief   The PID to the IPv6 thread.
@@ -127,12 +145,13 @@ kernel_pid_t gnrc_ipv6_init(void);
  * This situation may happen when the packet has a source routing extension
  * header (RFC 6554), and the packet is forwarded from an interface to another.
  *
- * @param[in] iface     The receiving interface.
+ * @param[in] netif     The receiving interface.
  * @param[in] current   A snip to process.
  * @param[in] pkt       A packet.
  * @param[in] nh        A protocol number (see @ref net_protnum) of the current snip.
  */
-void gnrc_ipv6_demux(kernel_pid_t iface, gnrc_pktsnip_t *current, gnrc_pktsnip_t *pkt, uint8_t nh);
+void gnrc_ipv6_demux(gnrc_netif_t *netif, gnrc_pktsnip_t *current,
+                     gnrc_pktsnip_t *pkt, uint8_t nh);
 
 /**
  * @brief   Get the IPv6 header from a given list of @ref gnrc_pktsnip_t
@@ -151,7 +170,7 @@ ipv6_hdr_t *gnrc_ipv6_get_header(gnrc_pktsnip_t *pkt);
 }
 #endif
 
-#endif /* GNRC_IPV6_H */
+#endif /* NET_GNRC_IPV6_H */
 /**
  * @}
  */

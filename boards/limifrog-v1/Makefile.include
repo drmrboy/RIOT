@@ -7,7 +7,10 @@ PORT_LINUX ?= /dev/ttyUSB0
 PORT_DARWIN ?= $(firstword $(sort $(wildcard /dev/tty.SLAB_USBtoUART*)))
 
 # setup serial terminal
-include $(RIOTBOARD)/Makefile.include.serial
+include $(RIOTMAKE)/tools/serial.inc.mk
+
+export DEBUG_ADAPTER ?= stlink
+export STLINK_VERSION ?= 2
 
 # this board uses openocd
-include $(RIOTBOARD)/Makefile.include.openocd
+include $(RIOTMAKE)/tools/openocd.inc.mk

@@ -20,20 +20,8 @@
 
 #include "auto_init.h"
 
-#ifdef MODULE_IO1_XPLAINED
-#include "io1_xplained.h"
-#endif
-
 #ifdef MODULE_SHT11
 #include "sht11.h"
-#endif
-
-#ifdef MODULE_GPIOINT
-#include "gpioint.h"
-#endif
-
-#ifdef MODULE_LTC4150
-#include "ltc4150.h"
 #endif
 
 #ifdef MODULE_MCI
@@ -44,20 +32,12 @@
 #include "xtimer.h"
 #endif
 
-#ifdef MODULE_RTC
-#include "periph/rtc.h"
-#endif
-
 #ifdef MODULE_GNRC_SIXLOWPAN
 #include "net/gnrc/sixlowpan.h"
 #endif
 
 #ifdef MODULE_GNRC_IPV6
 #include "net/gnrc/ipv6.h"
-#endif
-
-#ifdef MODULE_GNRC_IPV6_NETIF
-#include "net/gnrc/ipv6/netif.h"
 #endif
 
 #ifdef MODULE_L2_PING
@@ -84,49 +64,39 @@
 #include "lwip.h"
 #endif
 
-#ifdef MODULE_FIB
-#include "net/fib.h"
+#ifdef MODULE_OPENTHREAD
+#include "ot.h"
 #endif
 
-#ifdef MODULE_TINYMT32
-#include "random.h"
+#ifdef MODULE_FIB
+#include "net/fib.h"
 #endif
 
 #ifdef MODULE_GCOAP
 #include "net/gcoap.h"
 #endif
 
+#ifdef MODULE_GNRC_IPV6_NIB
+#include "net/gnrc/ipv6/nib.h"
+#endif
+
+
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
 void auto_init(void)
 {
-#ifdef MODULE_TINYMT32
-    random_init(0);
+#ifdef MODULE_PRNG
+    void auto_init_random(void);
+    auto_init_random();
 #endif
 #ifdef MODULE_XTIMER
     DEBUG("Auto init xtimer module.\n");
     xtimer_init();
 #endif
-#ifdef MODULE_RTC
-    DEBUG("Auto init rtc module.\n");
-    rtc_init();
-#endif
-#ifdef MODULE_IO1_XPLAINED
-    DEBUG("Auto init IO1 Xplained extension module.\n");
-    io1_xplained_auto_init();
-#endif
 #ifdef MODULE_SHT11
     DEBUG("Auto init SHT11 module.\n");
     sht11_init();
-#endif
-#ifdef MODULE_GPIOINT
-    DEBUG("Auto init gpioint module.\n");
-    gpioint_init();
-#endif
-#ifdef MODULE_LTC4150
-    DEBUG("Auto init ltc4150 module.\n");
-    ltc4150_init();
 #endif
 #ifdef MODULE_MCI
     DEBUG("Auto init mci module.\n");
@@ -160,18 +130,26 @@ void auto_init(void)
     DEBUG("Auto init TCP module\n");
     gnrc_tcp_init();
 #endif
-#ifdef MODULE_DHT
-    DEBUG("Auto init DHT devices.\n");
-    extern void dht_auto_init(void);
-    dht_auto_init();
-#endif
 #ifdef MODULE_LWIP
     DEBUG("Bootstraping lwIP.\n");
     lwip_bootstrap();
 #endif
+#ifdef MODULE_OPENTHREAD
+    extern void openthread_bootstrap(void);
+    openthread_bootstrap();
+#endif
 #ifdef MODULE_GCOAP
     DEBUG("Auto init gcoap module.\n");
     gcoap_init();
+#endif
+#ifdef MODULE_DEVFS
+    DEBUG("Mounting /dev\n");
+    extern void auto_init_devfs(void);
+    auto_init_devfs();
+#endif
+#ifdef MODULE_GNRC_IPV6_NIB
+    DEBUG("Auto init gnrc_ipv6_nib module.\n");
+    gnrc_ipv6_nib_init();
 #endif
 
 /* initialize network devices */
@@ -180,6 +158,11 @@ void auto_init(void)
 #ifdef MODULE_AT86RF2XX
     extern void auto_init_at86rf2xx(void);
     auto_init_at86rf2xx();
+#endif
+
+#ifdef MODULE_MRF24J40
+    extern void auto_init_mrf24j40(void);
+    auto_init_mrf24j40();
 #endif
 
 #ifdef MODULE_CC2420
@@ -202,9 +185,9 @@ void auto_init(void)
     auto_init_ethos();
 #endif
 
-#ifdef MODULE_GNRC_SLIP
-    extern void auto_init_slip(void);
-    auto_init_slip();
+#ifdef MODULE_SLIPDEV
+    extern void auto_init_slipdev(void);
+    auto_init_slipdev();
 #endif
 
 #ifdef MODULE_CC110X
@@ -227,9 +210,14 @@ void auto_init(void)
     auto_init_kw2xrf();
 #endif
 
-#ifdef MODULE_NETDEV2_TAP
-    extern void auto_init_netdev2_tap(void);
-    auto_init_netdev2_tap();
+#ifdef MODULE_NETDEV_TAP
+    extern void auto_init_netdev_tap(void);
+    auto_init_netdev_tap();
+#endif
+
+#ifdef MODULE_SOCKET_ZEP
+    extern void auto_init_socket_zep(void);
+    auto_init_socket_zep();
 #endif
 
 #ifdef MODULE_NORDIC_SOFTDEVICE_BLE
@@ -247,11 +235,12 @@ void auto_init(void)
     auto_init_w5100();
 #endif
 
-#endif /* MODULE_AUTO_INIT_GNRC_NETIF */
-
-#ifdef MODULE_GNRC_IPV6_NETIF
-    gnrc_ipv6_netif_init_by_dev();
+#ifdef MODULE_SX127X
+    extern void auto_init_sx127x(void);
+    auto_init_sx127x();
 #endif
+
+#endif /* MODULE_AUTO_INIT_GNRC_NETIF */
 
 #ifdef MODULE_GNRC_UHCPC
     extern void auto_init_gnrc_uhcpc(void);
@@ -290,9 +279,29 @@ void auto_init(void)
     extern void auto_init_lis3dh(void);
     auto_init_lis3dh();
 #endif
+#ifdef MODULE_LIS3MDL
+extern void auto_init_lis3mdl(void);
+auto_init_lis3mdl();
+#endif
+#ifdef MODULE_MAG3110
+    extern void auto_init_mag3110(void);
+    auto_init_mag3110();
+#endif
 #ifdef MODULE_MMA8X5X
     extern void auto_init_mma8x5x(void);
     auto_init_mma8x5x();
+#endif
+#ifdef MODULE_MPL3115A2
+    extern void auto_init_mpl3115a2(void);
+    auto_init_mpl3115a2();
+#endif
+#ifdef MODULE_MPU9150
+extern void auto_init_mpu9150(void);
+auto_init_mpu9150();
+#endif
+#ifdef MODULE_GROVE_LEDBAR
+    extern void auto_init_grove_ledbar(void);
+    auto_init_grove_ledbar();
 #endif
 #ifdef MODULE_SI70XX
     extern void auto_init_si70xx(void);
@@ -302,17 +311,61 @@ void auto_init(void)
     extern void auto_init_bmp180(void);
     auto_init_bmp180();
 #endif
-#ifdef MODULE_BME280
-    extern void auto_init_bme280(void);
-    auto_init_bme280();
+#if defined(MODULE_BME280) || defined(MODULE_BMP280)
+    extern void auto_init_bmx280(void);
+    auto_init_bmx280();
 #endif
 #ifdef MODULE_JC42
     extern void auto_init_jc42(void);
     auto_init_jc42();
 #endif
+#ifdef MODULE_TSL2561
+    extern void auto_init_tsl2561(void);
+    auto_init_tsl2561();
+#endif
 #ifdef MODULE_HDC1000
     extern void auto_init_hdc1000(void);
     auto_init_hdc1000();
+#endif
+#ifdef MODULE_HTS221
+    extern void auto_init_hts221(void);
+    auto_init_hts221();
+#endif
+#ifdef MODULE_DHT
+    extern void auto_init_dht(void);
+    auto_init_dht();
+#endif
+#ifdef MODULE_TMP006
+    extern void auto_init_tmp006(void);
+    auto_init_tmp006();
+#endif
+#ifdef MODULE_TCS37727
+    extern void auto_init_tcs37727(void);
+    auto_init_tcs37727();
+#endif
+#ifdef MODULE_VEML6070
+    extern void auto_init_veml6070(void);
+    auto_init_veml6070();
+#endif
+#ifdef MODULE_IO1_XPLAINED
+    extern void auto_init_io1_xplained(void);
+    auto_init_io1_xplained();
+#endif
+#ifdef MODULE_ADXL345
+    extern void auto_init_adxl345(void);
+    auto_init_adxl345();
+#endif
+#ifdef MODULE_LSM6DSL
+    extern void auto_init_lsm6dsl(void);
+    auto_init_lsm6dsl();
+#endif
+#ifdef MODULE_ADCXX1C
+    extern void auto_init_adcxx1c(void);
+    auto_init_adcxx1c();
+#endif
+#ifdef MODULE_LIS2DH12
+    extern void auto_init_lis2dh12(void);
+    auto_init_lis2dh12();
 #endif
 
 #endif /* MODULE_AUTO_INIT_SAUL */
@@ -336,4 +389,12 @@ void auto_init(void)
 #endif
 
 #endif /* MODULE_AUTO_INIT_STORAGE */
+
+#ifdef MODULE_AUTO_INIT_CAN
+    DEBUG("auto_init CAN\n");
+
+    extern void auto_init_candev(void);
+    auto_init_candev();
+
+#endif /* MODULE_AUTO_INIT_CAN */
 }

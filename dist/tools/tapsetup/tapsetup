@@ -175,8 +175,11 @@ while true ; do
 done
 
 if [ -z "${USER}" ]; then
-    echo 'need to export $USER'
-    exit 1
+    export USER=$(id -un)
+    if [ -z "${USER}" ]; then
+        echo 'need to export $USER'
+        exit 1
+    fi
 fi
 if [ -z "${COMMAND}" ]; then
     COMMAND="create"
@@ -185,7 +188,7 @@ case "$(uname -s)" in
     Darwin)
         PLATFORM="OSX"
         if echo "$BRNAME" | grep -v -q "^bridge"; then
-            BRNAME=bridge0
+            BRNAME=bridge42
         fi ;;
     FreeBSD)
         PLATFORM="FreeBSD"

@@ -41,7 +41,8 @@ SECTIONS
     {
         . = ALIGN(4);
         _sfixed = .;
-        KEEP(*(.vectors .vectors.*))
+        _isr_vectors = DEFINED(_isr_vectors) ? _isr_vectors : . ;
+        KEEP(*(SORT(.vectors*)))
         *(.text .text.* .gnu.linkonce.t.*)
         *(.glue_7t) *(.glue_7)
         *(.rodata .rodata* .gnu.linkonce.r.*)
@@ -120,6 +121,7 @@ SECTIONS
         _srelocate = .;
         *(.ramfunc .ramfunc.*);
         *(.data .data.*);
+        KEEP (*(.openocd .openocd.*))
         . = ALIGN(4);
         _erelocate = .;
     } > ram
@@ -142,7 +144,7 @@ SECTIONS
     _sheap = . ;
     _eheap = ORIGIN(ram) + LENGTH(ram);
 
-    /* Populate information abour ram size */
+    /* Populate information about ram size */
     _sram = ORIGIN(ram);
     _eram = ORIGIN(ram) + LENGTH(ram);
 }

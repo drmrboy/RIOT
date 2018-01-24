@@ -11,7 +11,7 @@
  * @ingroup     net_gnrc
  * @brief       Protocol type definitions and helper functions
  *
- * The protocol types are used with the @ref net_gnrc_netapi, the @ref net_gnrc_netdev,
+ * The protocol types are used with the @ref net_gnrc_netapi, the @ref net_gnrc_netif,
  * the @ref net_gnrc_netreg, and the @ref net_gnrc_pkt to identify network protocols
  * throughout the network stack.
  *
@@ -22,8 +22,8 @@
  *
  * @author  Martine Lenders <mlenders@inf.fu-berlin.de>
  */
-#ifndef GNRC_NETTYPE_H
-#define GNRC_NETTYPE_H
+#ifndef NET_GNRC_NETTYPE_H
+#define NET_GNRC_NETTYPE_H
 
 #include <inttypes.h>
 
@@ -55,6 +55,28 @@ typedef enum {
 #ifdef MODULE_GNRC_SIXLOWPAN
     GNRC_NETTYPE_SIXLOWPAN,     /**< Protocol is 6LoWPAN */
 #endif
+
+    /**
+     * @{
+     * @name Link layer
+     */
+#ifdef MODULE_GNRC_GOMACH
+    GNRC_NETTYPE_GOMACH,         /**< Protocol is GoMacH */
+#endif
+    /**
+     * @}
+     */
+
+    /**
+     * @{
+     * @name Link layer
+     */
+#ifdef MODULE_GNRC_LWMAC
+    GNRC_NETTYPE_LWMAC,          /**< Protocol is lwMAC */
+#endif
+    /**
+     * @}
+     */
 
     /**
      * @{
@@ -245,5 +267,5 @@ static inline uint8_t gnrc_nettype_to_protnum(gnrc_nettype_t type)
 }
 #endif
 
-#endif /* GNRC_NETTYPE_H */
+#endif /* NET_GNRC_NETTYPE_H */
 /** @} */

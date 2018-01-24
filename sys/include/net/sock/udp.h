@@ -63,7 +63,7 @@
  * implementation (e.g. `gnrc_ipv6_default` for @ref net_gnrc GNRC) and at least
  * one network device.
  *
- * After including the header file for @ref net_sock_udp "UDP sock", we create some 
+ * After including the header file for @ref net_sock_udp "UDP sock", we create some
  * buffer space `buf` to store the data received by the server:
  *
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ {.c}
@@ -224,7 +224,7 @@
  *                                           IPV6_ADDR_MCAST_SCP_LINK_LOCAL);
  *         if (sock_udp_send(&sock, "Hello!", sizeof("Hello!"), &remote) < 0) {
  *             puts("Error sending message");
- *             sock_udp_close();
+ *             sock_udp_close(&sock);
  *             return 1;
  *         }
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -299,21 +299,21 @@ typedef struct sock_udp sock_udp_t;
  * @param[out] sock     The resulting sock object.
  * @param[in] local     Local end point for the sock object.
  *                      May be NULL.
- *                      sock_udp_ep_t::port may not be 0 if `local != NULL`.
+ *                      sock_udp_ep_t::port must not be 0 if `local != NULL`.
  *                      sock_udp_ep_t::netif must either be
  *                      @ref SOCK_ADDR_ANY_NETIF or equal to
  *                      sock_udp_ep_t::netif of @p remote if `remote != NULL`.
  *                      If NULL @ref sock_udp_send() may bind implicitly.
  * @param[in] remote    Remote end point for the sock object.
  *                      May be `NULL` but then the `remote` parameter of
- *                      @ref sock_udp_send() may not be `NULL` and or it will
+ *                      @ref sock_udp_send() may not be `NULL` or it will
  *                      always error with return value -ENOTCONN.
- *                      sock_udp_ep_t::port may not be 0 if `remote != NULL`.
+ *                      sock_udp_ep_t::port must not be 0 if `remote != NULL`.
  *                      sock_udp_ep_t::netif must either be
  *                      @ref SOCK_ADDR_ANY_NETIF or equal to sock_udp_ep_t::netif
  *                      of @p local if `local != NULL`.
  * @param[in] flags     Flags for the sock object. See also
- *                      [sock flags](net_sock_flags).
+ *                      [sock flags](@ref net_sock_flags).
  *                      May be 0.
  *
  * @return  0 on success.
@@ -389,6 +389,8 @@ int sock_udp_get_remote(sock_udp_t *sock, sock_udp_ep_t *ep);
  * @return  0, if no received data is available, but everything is in order.
  * @return  -EADDRNOTAVAIL, if local of @p sock is not given.
  * @return  -EAGAIN, if @p timeout is `0` and no data is available.
+ * @return  -EINVAL, if @p remote is invalid or @p sock is not properly
+ *          initialized (or closed while sock_udp_recv() blocks).
  * @return  -ENOBUFS, if buffer space is not large enough to store received
  *          data.
  * @return  -ENOMEM, if no memory was available to receive @p data.
